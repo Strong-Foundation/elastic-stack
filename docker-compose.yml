@@ -1,39 +1,46 @@
-services:
-  elasticsearch:
-    image: docker.elastic.co/elasticsearch/elasticsearch:8.12.1
-    container_name: elasticsearch
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
-    volumes:
-      - esdata:/usr/share/elasticsearch/data
-    ports:
-      - "9200:9200"
+services: # Define all the services (containers) to run
+  elasticsearch: # Elasticsearch service
+    image: elasticsearch:8.12.1 # Use the official Elasticsearch 8.12.1 image
+    container_name: elasticsearch # Name the container “elasticsearch”
+    environment: # Environment variables for Kibana
+      - discovery.type=single-node # Run in single-node mode for simplicity
+      - xpack.license.self_generated.type=basic # Use basic license for free features
+      - xpack.security.enabled=false # Turn off Kibana’s security features
+      - xpack.security.enrollment.enabled=false # Disable security enrollment
+    networks: # Networks this service is attached to
+      - elk-net # Attach to our custom bridge network
+    ports: # Port mappings from host to container
+      - "9200:9200" # Expose Elasticsearch HTTP API on host port 9200
+      - "9300:9300" # Expose transport port for inter-node communication
 
-  logstash:
-    image: docker.elastic.co/logstash/logstash:8.12.1
-    container_name: logstash
-    depends_on:
-      - elasticsearch
-    volumes:
-      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
-    ports:
-      - "5000:5000"
-    restart: on-failure
+  logstash: # Logstash service
+    image: logstash:8.12.1 # Use the official Logstash 8.12.1 image
+    container_name: logstash # Name the container “logstash”
+    volumes: # Mount points for Logstash config
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf # Mount our local config into the container
+    networks: # Networks this service is attached to
+      - elk-net # Attach to the same network as Elasticsearch
+    depends_on: # Service startup order
+      - elasticsearch # Ensure Elasticsearch starts before Logstash
+    ports: # Port mappings from host to container
+      - "5044:5044" # Expose Beats/TCP input port on host port 5044
+    command: # Override the default command
+      - logstash # Run the Logstash binary
+      - "-f" # Specify the config file flag
+      - /usr/share/logstash/pipeline/logstash.conf # Path to our pipeline config
 
-  kibana:
-    image: docker.elastic.co/kibana/kibana:8.12.1
-    container_name: kibana
-    environment:
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
-    ports:
-      - "5601:5601"
-    depends_on:
-      - elasticsearch
+  kibana: # Kibana service
+    image: kibana:8.12.1 # Use the official Kibana 8.12.1 image
+    container_name: kibana # Name the container “kibana”
+    environment: # Environment variables for Kibana
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200 # Point Kibana at Elasticsearch’s HTTP API
+    networks: # Networks this service is attached to
+      - elk-net # Attach to the same network as Elasticsearch
+    depends_on: # Service startup order
+      - elasticsearch # Ensure Elasticsearch starts before Kibana
+    ports: # Port mappings from host to container
+      - "5601:5601" # Expose Kibana UI on host port 5601
 
-volumes:
-  esdata:
+networks: # Define custom networks
+  elk-net: # Network name
+    driver: bridge # Use a user-defined bridge network for isolation
