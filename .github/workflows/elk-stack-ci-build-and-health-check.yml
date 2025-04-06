@@ -1,25 +1,24 @@
 name: Elasticsearch-Logstash-Kibana Continuous Integration Pipeline # Full descriptive workflow name
 
+# Define the events that trigger the workflow
 on:
+  # Trigger the workflow when there are changes to Dockerfiles or .sh files on push
   push:
-    branches:
-      - main # Only run when code is pushed to the main branch
+    paths:
+      - "**.yml" # Trigger workflow if any .yml file is changed
+
+  # Trigger the workflow on pull request if there are changes to Dockerfiles or .sh files
   pull_request:
-    branches:
-      - main # Only run when pull requests target the main branch
+    paths:
+      - "**.yml" # Trigger workflow if any .yml file is changed
+
+  # Allow manual triggering of the workflow
+  workflow_dispatch: # Manually trigger the workflow
 
 jobs:
   run-elk-stack-build-and-health-check:
     name: Build ELK Stack and Perform Health Check # Human-readable job name
     runs-on: ubuntu-latest # Use the latest Ubuntu virtual machine
-
-    services:
-      docker-docker-in-docker:
-        image: docker:24.0.5-dind # Use Docker-in-Docker image to allow nested Docker commands
-        privileged: true # Grant privileged mode so the Docker daemon can run inside the container
-        options: >- # Additional Docker daemon options
-          --tmpfs /run --tmpfs /run/lock                           # Mount in-memory filesystems for improved performance and security
-          -v /var/lib/docker                                       # Persist Docker layers and data between steps
 
     steps:
       # Step 1: Retrieve the repository from GitHub onto the runner
