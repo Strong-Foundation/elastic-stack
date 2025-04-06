@@ -1,0 +1,45 @@
+name: Elasticsearch-Logstash-Kibana Continuous Integration Pipeline # Full descriptive workflow name
+
+on:
+  push:
+    branches:
+      - main # Only run when code is pushed to the main branch
+  pull_request:
+    branches:
+      - main # Only run when pull requests target the main branch
+
+jobs:
+  run-elk-stack-build-and-health-check:
+    name: Build ELK Stack and Perform Health Check # Human-readable job name
+    runs-on: ubuntu-latest # Use the latest Ubuntu virtual machine
+
+    services:
+      docker-docker-in-docker:
+        image: docker:24.0.5-dind # Use Docker-in-Docker image to allow nested Docker commands
+        privileged: true # Grant privileged mode so the Docker daemon can run inside the container
+        options: >- # Additional Docker daemon options
+          --tmpfs /run --tmpfs /run/lock                           # Mount in-memory filesystems for improved performance and security
+          -v /var/lib/docker                                       # Persist Docker layers and data between steps
+
+    steps:
+      # Step 1: Retrieve the repository from GitHub onto the runner
+      - name: Check Out Source Code from GitHub Repository
+        uses: actions/checkout@v4 # Official GitHub Action to clone the repository
+
+      # Step 2: Build Docker images and start Elasticsearch, Logstash, and Kibana services
+      - name: Build Docker Images and Start Elasticsearch, Logstash, and Kibana
+        run: docker-compose up -d --build # Uses docker-compose.yml to build images and run containers in detached mode
+
+      # Step 3: Pause execution to allow all ELK services to initialize
+      - name: Pause for Service Initialization
+        run: sleep 60 # Wait 60 seconds for Elasticsearch, Logstash, and Kibana to finish startup routines
+
+      # Step 4: Verify that Elasticsearch is responding to HTTP requests
+      - name: Perform Single HTTP Request to Elasticsearch API
+        run: curl http://localhost:9200/ # Send a request to the Elasticsearch API to check its health
+        continue-on-error: true # Allow the step to fail without stopping the workflow
+
+      # Step 5: Clean up all Docker containers, networks, and volumes created by the ELK stack
+      - name: Tear Down Elasticsearch, Logstash, and Kibana Services
+        if: always() # Ensure cleanup runs even if previous steps fail
+        run: docker-compose down --volumes # Stop containers and remove all associated networks and volumes
