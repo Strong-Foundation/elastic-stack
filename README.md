@@ -1,6 +1,6 @@
 # Elastic Stack
 
-This repository provides a simple and scalable way to deploy and manage the Elastic Stack components—Elasticsearch, Logstash, and Kibana—using Docker Compose. The Elastic Stack allows you to collect, analyze, and visualize data in real-time, making it a powerful tool for data analytics, logging, and monitoring.
+This repository provides a simple and scalable way to deploy and manage the Elastic Stack components Elasticsearch, Logstash, and Kibana using Docker Compose. The Elastic Stack allows you to collect, analyze, and visualize data in real time, making it a powerful tool for data analytics, logging, and monitoring.
 
 ## Components
 
